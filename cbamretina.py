@@ -180,6 +180,59 @@ class RetinaNetLightning(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    def postprocess(self, cls_logits, bbox_regression, anchors):
+        results = []
+        for logits, bbox_reg, anchor in zip(cls_logits, bbox_regression, anchors):
+            scores = torch.sigmoid(logits) 
+
+            scores, _ = scores.max(dim=1)
+
+            boxes = self.decode_boxes(anchor, bbox_reg)
+
+            # Apply NMS 
+            keep = nms(boxes, scores, iou_threshold=0.5) 
+
+            results.append({
+                'boxes': boxes[keep],
+                'scores': scores[keep]
+            })
+        
+        return results
+
+
+    def decode_boxes(self, anchors, bbox_regression):
+   
+        anchors = anchors.to(bbox_regression.device) 
+        x_min_anchors = anchors[:, 0]
+        y_min_anchors = anchors[:, 1]
+        x_max_anchors = anchors[:, 2]
+        y_max_anchors = anchors[:, 3]
+
+        widths = x_max_anchors - x_min_anchors
+        heights = y_max_anchors - y_min_anchors
+        center_x_anchors = x_min_anchors + 0.5 * widths
+        center_y_anchors = y_min_anchors + 0.5 * heights
+
+        dx = bbox_regression[:, 0]
+        dy = bbox_regression[:, 1]
+        dw = bbox_regression[:, 2]
+        dh = bbox_regression[:, 3]
+
+        center_x = center_x_anchors + dx * widths
+        center_y = center_y_anchors + dy * heights
+
+        pred_widths = widths * torch.exp(dw)
+        pred_heights = heights * torch.exp(dh)
+
+        pred_x_min = center_x - 0.5 * pred_widths
+        pred_y_min = center_y - 0.5 * pred_heights
+        pred_x_max = center_x + 0.5 * pred_widths
+        pred_y_max = center_y + 0.5 * pred_heights
+
+        decoded_boxes = torch.stack([pred_x_min, pred_y_min, pred_x_max, pred_y_max], dim=1)
+
+        return decoded_boxes
+
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         return optimizer
