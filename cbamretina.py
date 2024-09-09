@@ -27,65 +27,7 @@ from lightning.pytorch.loggers import WandbLogger
 import torchvision.transforms.functional as F_t
 import torchvision.transforms.v2 as T
 from torchvision.ops import FeaturePyramidNetwork
-
-
-# Define the dataset class
-class RetinaDataset(Dataset):
-    def __init__(self, csv_file, augmentation=True):
-        self.df = pd.read_csv(csv_file)
-        self.imgs = self.df['image_path'].values
-        self.do_augment = augmentation
-
-        self.photometric_augment = T.Compose([
-            GammaCorrectionTransform(gamma=0.2),
-            T.RandomApply(transforms=[T.ColorJitter(brightness=0.2, contrast=0.2)], p=0.6)
-        ])
-
-        # geometric data augmentation
-        self.geometric_augment = T.Compose([
-                T.RandomApply(transforms=[T.RandomAffine(degrees=20, scale=(0.9, 1.1))], p=0.5),
-                T.RandomVerticalFlip(p=0.5),
-                T.RandomHorizontalFlip(p=0.5),
-            ])
-
-    def __len__(self):
-        return len(self.imgs)
-
-    def __getitem__(self, idx):
-        # Extract Image and Bounding Box info
-        img_path = self.imgs[idx]
-        row_df = self.df.loc[self.df['image_path'] == img_path]
-        numfind = row_df['numfind'].values[0]
-        if numfind > 0:
-            bbox = torch.tensor(ast.literal_eval(row_df['bbox'].values[0]))
-            labels = torch.zeros(numfind)
-        else:
-            bbox = torch.empty((0, 4))
-            labels = torch.empty((0,), dtype=torch.long)
-
-        to_tensor = torchvision.transforms.ToTensor()
-        img = io.imread(img_path) # 16 bit range
-        img = (img / img.max()) # [0, 1] --> gray
-        img = gray2rgb(img) # --> to rgb, in [0, 1] in H,W,3
-        image = to_tensor(img).float() # --> tensor in [0, 1] in 3,H,W
-
-        # Resize image to 1024x768
-        if image.shape[-2:] != (1024, 768):
-            resize_transform = T.Resize((1024, 768))
-            image = resize_transform(image)
-
-        boxes = tv_tensors.BoundingBoxes(bbox, format="XYXY", canvas_size=(1024, 768))
-
-        if self.do_augment:
-            image = self.photometric_augment(image)
-            if numfind > 0:
-                image, boxes = self.geometric_augment(image, boxes)
-            else:
-                image = self.geometric_augment(image)
-
-        target = {'bbox': boxes, 'labels': labels}
-
-        return image, target
+from model import RetinaDataset
 
 
 # Define CBAM blocks
@@ -100,7 +42,7 @@ class CBAMBlock(nn.Module):
         x = self.spatial_attention(x) * x
         return x
 
-
+# Define Channel Attention Block
 class ChannelAttention(nn.Module):
     def __init__(self, in_planes, reduction=16):
         super(ChannelAttention, self).__init__()
@@ -118,6 +60,7 @@ class ChannelAttention(nn.Module):
         return self.sigmoid(out)
 
 
+# Define Spatial Attention Block
 class SpatialAttention(nn.Module):
     def __init__(self, kernel_size=7):
         super(SpatialAttention, self).__init__()
@@ -198,7 +141,6 @@ class RetinaNetLightning(L.LightningModule):
             })
         
         return results
-
 
     def decode_boxes(self, anchors, bbox_regression):
    
