@@ -199,6 +199,9 @@ class GammaCorrectionTransform:
     
 
 def collate(batch):
+    """
+    Custom collate function for Faster R-CNN
+    """
     img_list = []
     bx_list = []
     label_list = []
