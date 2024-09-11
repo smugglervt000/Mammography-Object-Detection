@@ -95,6 +95,7 @@ class RCNNDataset(Dataset):
         return image, target
     
 
+# Define Faster R-CNN Class
 class FasterRCNNModel(L.LightningModule):
     def __init__(self, learning_rate=1e-5, weight_decay=1e-5, momentum=0.9):
         super().__init__()
