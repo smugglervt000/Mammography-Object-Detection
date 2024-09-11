@@ -29,9 +29,10 @@ from lightning.pytorch.loggers import WandbLogger
 import torchvision.transforms.functional as F
 import torchvision.transforms.v2 as T
 from torchvision.ops import FeaturePyramidNetwork, MultiScaleRoIAlign
+from model import collate
 
 
-# Define the dataset class
+# Define multi class dataset
 class RetinaDataset(Dataset):
     def __init__(self, csv_file, augmentation=True):
         self.df = pd.read_csv(csv_file)
@@ -89,7 +90,6 @@ class RetinaDataset(Dataset):
         return image, target
 
     
-
 # Define the LightningModule
 class RetinaNet(L.LightningModule):
     def __init__(self, learning_rate=1e-5, weight_decay=1e-5):
@@ -174,21 +174,6 @@ class GammaCorrectionTransform:
         if gamma_factor is not None:
             img = F.adjust_gamma(img, gamma_factor, gain=1)
         return img
-
-
-def collate(batch):
-    img_list = []
-    bx_list = []
-    label_list = []
-    for element in batch:
-        img = element[0]
-        img_list.append(img)
-        bx_list.append(element[-1]['bbox'])
-        label_list.append(element[-1]['labels'])
-
-    img_tensor = torch.stack(img_list)
-
-    return img_tensor, {'bbox': bx_list, 'labels': label_list}
 
 
 def main():
