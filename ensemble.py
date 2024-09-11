@@ -83,8 +83,10 @@ class RetinaNetEnsemble(L.LightningModule):
 
         return [{}, [{'bbox': boxes, 'scores': scores, 'labels': labels} for boxes, scores, labels in zip(final_boxes, final_scores, final_labels)]]
 
-# Function to load models to ensemble
 def load_models(checkpoint_paths, ratios, scales):
+    """
+    Function to load models for the ensemble.
+    """
     models = []
     for path in checkpoint_paths:
         model = RetinaNet.load_from_checkpoint(path, ratios=ratios, scales=scales)
@@ -108,7 +110,7 @@ ensemble_model = RetinaNetEnsemble(models, model_weights=model_weights)
 
 def combined_metric(mAP, specificity, alpha=0.5):
     """
-    Function to determine combined metric of mAP and specificity
+    Function to combined metric of mAP and specificity.
     """
     # Calculate the combined metric
     combined_score = alpha * mAP + (1 - alpha) * specificity
