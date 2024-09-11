@@ -164,8 +164,10 @@ class GammaCorrectionTransform:
             img = F.adjust_gamma(img, gamma_factor, gain=1)
         return img
 
-# Custom collate function
 def collate(batch):
+    """
+    Custom collate function for RetinaNet
+    """
     img_list = []
     bx_list = []
     label_list = []
