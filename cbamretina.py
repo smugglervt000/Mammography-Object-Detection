@@ -77,7 +77,7 @@ class SpatialAttention(nn.Module):
         return self.sigmoid(x)
     
 
-# Define the Lightning Module (RetinaNet)
+# Define RetinaNet Class
 class RetinaNetLightning(L.LightningModule):
     def __init__(self, learning_rate=1e-5, weight_decay=1e-5):
         super().__init__()
@@ -97,7 +97,7 @@ class RetinaNetLightning(L.LightningModule):
             aspect_ratios=(optimized_ratios,) * len(anchor_sizes) 
         )
  
-        # Initialize RetinaNet with CBAM-enhanced ResNet-50 backbone
+        # Initialize RetinaNet with CBAM using RetinaNetWithCBAM Class
         self.retina = RetinaNetWithCBAM(
             num_classes=1, 
             pretrained_backbone=True,
@@ -123,12 +123,13 @@ class RetinaNetLightning(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    # Postprocess cls_logits and bbox_regression
     def postprocess(self, cls_logits, bbox_regression, anchors):
         results = []
         for logits, bbox_reg, anchor in zip(cls_logits, bbox_regression, anchors):
             scores = torch.sigmoid(logits) 
 
-            scores, _ = scores.max(dim=1)
+            scores, _ = scores.max(dim=1) # Reshape scores tensor
 
             boxes = self.decode_boxes(anchor, bbox_reg)
 
@@ -142,6 +143,7 @@ class RetinaNetLightning(L.LightningModule):
         
         return results
 
+    # Box decoder to get model predictions
     def decode_boxes(self, anchors, bbox_regression):
    
         anchors = anchors.to(bbox_regression.device) 
@@ -179,11 +181,12 @@ class RetinaNetLightning(L.LightningModule):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         return optimizer
     
-
+# RetinaNet with CBAM architecture
 class RetinaNetWithCBAM(nn.Module):
     def __init__(self, num_classes=1, pretrained_backbone=True, anchor_generator=None):
         super(RetinaNetWithCBAM, self).__init__()
 
+        # Use ResNet50 pretrained backbone
         backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1 if pretrained_backbone else None)
 
         self.conv1 = backbone.conv1
@@ -204,6 +207,7 @@ class RetinaNetWithCBAM(nn.Module):
 
         in_channels_list = [256, 512, 1024, 2048] 
         out_channels = 256 
+        # Include P6P7 layers
         self.fpn = FeaturePyramidNetwork(in_channels_list=in_channels_list, out_channels=out_channels, extra_blocks=LastLevelP6P7(256, 256))
 
         # Define the RetinaNet classification and regression heads
@@ -216,10 +220,12 @@ class RetinaNetWithCBAM(nn.Module):
             allow_low_quality_matches=True
         )
 
+        # Set anchor generator
         self.anchor_generator = anchor_generator
 
     def forward(self, images, targets=None):
 
+        # Implement CBAM forward function
         x = self.conv1(images)
         x = self.bn1(x)
         x = self.relu(x)
@@ -244,6 +250,7 @@ class RetinaNetWithCBAM(nn.Module):
 
         feature_maps = list(fpn_features.values())  
 
+        # Get class logits and bbox regression
         cls_logits = self.classification_head(feature_maps) 
         bbox_regression = self.regression_head(feature_maps) 
 
@@ -255,6 +262,7 @@ class RetinaNetWithCBAM(nn.Module):
         else:
             return cls_logits, bbox_regression
 
+    # Use loss from classification and regression heads
     def compute_loss(self, cls_logits, bbox_regression, targets, anchors):
 
         matched_idxs = []
