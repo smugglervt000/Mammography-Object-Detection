@@ -23,8 +23,9 @@ import torchvision.transforms.v2 as T
 from lightning.pytorch.strategies import DDPStrategy
 
 
+# Define Dataset class
 class BinaryClassificationDataset(Dataset):
-    def __init__(self, csv_file, augmentation=True, apply_padding=True):
+    def __init__(self, csv_file, augmentation=True, apply_padding=False):
         self.df = pd.read_csv(csv_file)
         self.imgs = self.df['image_path'].values
         self.do_augment = augmentation
@@ -118,6 +119,7 @@ class GammaCorrectionTransform:
         return img
 
 
+# Define ResNet50 classifier
 class ResNetBinaryClassifier(L.LightningModule):
     def __init__(self, checkpoint_path=None, learning_rate=7e-5, weight_decay=1e-5, freeze_layers=False):
         super(ResNetBinaryClassifier, self).__init__()
@@ -127,6 +129,7 @@ class ResNetBinaryClassifier(L.LightningModule):
             state_dict = checkpoint['state_dict']  
             self.model.load_state_dict(state_dict, strict=False)
 
+        # Define loss, lr, and weight decay
         num_ftrs = self.model.fc.in_features
         self.model.fc = nn.Linear(num_ftrs, 1)
         self.criterion = nn.BCELoss()
