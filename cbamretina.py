@@ -28,6 +28,7 @@ import torchvision.transforms.functional as F_t
 import torchvision.transforms.v2 as T
 from torchvision.ops import FeaturePyramidNetwork
 from model import RetinaDataset
+from model import collate
 
 
 # Define CBAM blocks
@@ -123,8 +124,11 @@ class RetinaNetLightning(L.LightningModule):
         self.log("val_loss", loss)
         return loss
 
-    # Postprocess cls_logits and bbox_regression
+    
     def postprocess(self, cls_logits, bbox_regression, anchors):
+        """
+        This function postprocesses the class logits, bbox regression, and anchor tensors.
+        """
         results = []
         for logits, bbox_reg, anchor in zip(cls_logits, bbox_regression, anchors):
             scores = torch.sigmoid(logits) 
@@ -143,9 +147,11 @@ class RetinaNetLightning(L.LightningModule):
         
         return results
 
-    # Box decoder to get model predictions
+    
     def decode_boxes(self, anchors, bbox_regression):
-   
+        """
+        Box decoder to get model predictions.
+        """
         anchors = anchors.to(bbox_regression.device) 
         x_min_anchors = anchors[:, 0]
         y_min_anchors = anchors[:, 1]
@@ -224,8 +230,9 @@ class RetinaNetWithCBAM(nn.Module):
         self.anchor_generator = anchor_generator
 
     def forward(self, images, targets=None):
-
-        # Implement CBAM forward function
+        """
+        Forward function for CBAM implementation.
+        """
         x = self.conv1(images)
         x = self.bn1(x)
         x = self.relu(x)
@@ -262,9 +269,10 @@ class RetinaNetWithCBAM(nn.Module):
         else:
             return cls_logits, bbox_regression
 
-    # Use loss from classification and regression heads
     def compute_loss(self, cls_logits, bbox_regression, targets, anchors):
-
+        """
+        Use loss from classification and regression heads.
+        """
         matched_idxs = []
         for anchors_per_image, targets_per_image in zip(anchors, targets['bbox']):
             if torch.all(targets_per_image == -1):
@@ -320,20 +328,6 @@ class GammaCorrectionTransform:
         if gamma_factor is not None:
             img = F_t.adjust_gamma(img, gamma_factor, gain=1)
         return img
-
-
-# Sample collate function (assuming the rest of your code is correct)
-def collate(batch):
-    img_list = []
-    bx_list = []
-    label_list = []
-    for element in batch:
-        img = element[0]
-        img_list.append(img)
-        bx_list.append(element[-1]['bbox'])
-        label_list.append(element[-1]['labels'])
-    img_tensor = torch.stack(img_list)
-    return img_tensor, {'bbox': bx_list, 'labels': label_list}
 
 
 def main():
