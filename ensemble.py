@@ -12,12 +12,11 @@ from model import RetinaDataset, RetinaNet, collate
 from results import evaluate_model_retina
 
 
+# Define RetinaNet Ensemble Class
 class RetinaNetEnsemble(L.LightningModule):
-    def __init__(self, models, model_weights=None, neg_model_indices=[0, 1], pos_model_index=2):
+    def __init__(self, models, model_weights=None):
         super().__init__()
         self.models = models
-        self.neg_model_indices = neg_model_indices  # Indices of models trained with negative samples
-        self.pos_model_index = pos_model_index  # Index of model trained on positive samples
         # Set default weights if not provided
         self.model_weights = model_weights if model_weights else [1.0] * len(models)
 
@@ -73,7 +72,7 @@ class RetinaNetEnsemble(L.LightningModule):
                 scores = scores[keep]
                 labels = labels[keep]
             else:
-                # If no high-confidence predictions were made, this is a "no object" scenario
+                # Else no object 
                 boxes = torch.empty((0, 4))
                 scores = torch.empty((0,))
                 labels = torch.empty((0,), dtype=torch.int64)
@@ -84,6 +83,7 @@ class RetinaNetEnsemble(L.LightningModule):
 
         return [{}, [{'bbox': boxes, 'scores': scores, 'labels': labels} for boxes, scores, labels in zip(final_boxes, final_scores, final_labels)]]
 
+# Function to load models to ensemble
 def load_models(checkpoint_paths, ratios, scales):
     models = []
     for path in checkpoint_paths:
@@ -102,7 +102,7 @@ checkpoint_paths_1 = [
 models = load_models(checkpoint_paths_1, ratios=[1.0, 1.1912243160876392, 0.83947245409187], scales=[0.6701667817494404, 0.43826872391648763, 1.0929571608034148])
 test_dataset = RetinaDataset(csv_file='csv_files/massfil_vindr_1:1/test.csv', augmentation=False)
 test_loader_vindr = utils.data.DataLoader(test_dataset, batch_size=8, shuffle=False, collate_fn=collate)
-model_weights = [0.5, 0.6, 0.6]
+model_weights = [0.5, 0.6, 0.6] # Optimized weights to val set
 ensemble_model = RetinaNetEnsemble(models, model_weights=model_weights)
 
 
