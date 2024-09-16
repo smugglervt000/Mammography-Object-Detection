@@ -24,7 +24,8 @@ The models were trained and evaluated on publicly available mammography datasets
 - `faster_rcnn.py`: Implementation of Faster R-CNN architecture for object detection.
 - `multi-class.py`: Script to handle RetinaNet multi-class classification and detection.
 - `resnet50.py`: Adaptation of the ResNet50 model used as a backbone for feature extraction.
-- `retinanet.py`: RetinaNet implementation adapted for mammography images.
+- `model.py`: RetinaNet implementation adapted for mammography images.
+- `retinanet.py`: Adjusted copy of retinanet.py from pytorch library.
 - `preprocessor.ipynb`: Jupyter notebook for data preprocessing and conversion to CSV format for model training.
 - `results.ipynb`: Notebook to analyze model results.
 - `displays.ipynb`: Jupyter notebook for plotting results used in the final report.
