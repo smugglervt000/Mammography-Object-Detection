@@ -20,11 +20,13 @@ The models were trained and evaluated on publicly available mammography datasets
 - `anchor_optimization.py`: Script for anchor box size optimization.
 - `anchor_utils.py`: Utilities for generating anchor boxes.
 - `cbamretina.py`: RetinaNet model with Convolutional Block Attention Module (CBAM) integration.
+- `ensemble.py`: Ensemble learning implementation for multiple trained RetinaNet models. 
 - `evaluate_cbam.py`: Evaluation script for testing CBAM integrated models.
 - `faster_rcnn.py`: Implementation of Faster R-CNN architecture for object detection.
+- `merger_scripy.py`: Method for merging EMBED metadata and clinical data into one csv file. 
+- `model.py`: RetinaNet implementation adapted for mammography images.
 - `multi-class.py`: Script to handle RetinaNet multi-class classification and detection.
 - `resnet50.py`: Adaptation of the ResNet50 model used as a backbone for feature extraction.
-- `model.py`: RetinaNet implementation adapted for mammography images.
 - `retinanet.py`: Adjusted copy of retinanet.py from pytorch library.
 - `preprocessor.ipynb`: Jupyter notebook for data preprocessing and conversion to CSV format for model training.
 - `results.ipynb`: Notebook to analyze model results.
